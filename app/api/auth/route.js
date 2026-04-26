@@ -1,18 +1,20 @@
-// app/api/auth/route.js
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is not set.");
-}
-
 // POST /api/auth — Login
 export async function POST(req) {
   try {
+    const JWT_SECRET = process.env.JWT_SECRET;
+
+    if (!JWT_SECRET) {
+      return Response.json(
+        { error: "Server misconfiguration." },
+        { status: 500 }
+      );
+    }
+
     await connectDB();
     const { username, password } = await req.json();
 
@@ -25,7 +27,6 @@ export async function POST(req) {
 
     const user = await User.findOne({ username: username.toLowerCase().trim() });
     if (!user) {
-      // Generic message to prevent user enumeration
       return Response.json(
         { error: "Invalid username or password." },
         { status: 401 }
@@ -56,13 +57,14 @@ export async function POST(req) {
   }
 }
 
-// POST /api/auth/setup — One-time admin user creation (protected by ADMIN_SETUP_KEY)
-// Use this once to create your admin account, then remove or disable the route.
+// Setup route
 export async function PUT(req) {
   try {
+    const ADMIN_SETUP_KEY = process.env.ADMIN_SETUP_KEY;
+
     const { setupKey, username, password } = await req.json();
 
-    if (!process.env.ADMIN_SETUP_KEY || setupKey !== process.env.ADMIN_SETUP_KEY) {
+    if (!ADMIN_SETUP_KEY || setupKey !== ADMIN_SETUP_KEY) {
       return Response.json({ error: "Unauthorized." }, { status: 403 });
     }
 
